@@ -9,5 +9,6 @@ Repo is under construction!
 ### Using your own hardware:
 
 ```
+git clone https://github.com/davidcox143/rnn-text-compress.git
 pip install -r requirements.txt
 ```
