@@ -157,7 +157,7 @@ def main():
 
     # load weights from a previous run 
     if previous_weights != '':
-        decoder.load_weights('')
+        decoder.load_weights(previous_weights)
 
     # train the model
     if do_train: 
