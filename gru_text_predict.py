@@ -28,7 +28,7 @@ do_eval= True
 
 def conll_parse(conll_data):
     text, text_tags = [], []
-    conll_data      = [l.split() for l in conll_data.split('\n') if len(l) > 0]
+    conll_data = [l.split() for l in conll_data.split('\n') if len(l) > 0]
     words, pos_tags = [l[1] for l in conll_data], [l[4] for l in conll_data]
     for word_tag_pair in zip(words, pos_tags):
         for char in word_tag_pair[0]:
