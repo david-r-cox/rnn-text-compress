@@ -17,7 +17,6 @@ import sys
 from vectorize import vectorize_input
 
 # Configuration:
-syntaxnet_image_hash = 'cd0ec2e113b5' # on the AMI, run 'docker images' as root
 input_file_path = './txt/alice.txt'
 previous_weights = ''
 do_train = True
@@ -38,11 +37,10 @@ def conll_parse(conll_data):
     return text, text_tags
 
 # Use Google's SyntaxNet to perform POS tagging on text
-# Note: SyntaxNet hash must be set first!
 def get_pos_tags(path):
     print('Running SyntaxNet')
     cmd1       = 'cat {}'.format(path)
-    cmd2       = 'docker run -i {} --rm'.format(syntaxnet_image_hash)
+    cmd2       = 'docker run -i davidcox143/conll-format-syntaxnet --rm'
     cmd1, cmd2 = [shlex.split(cmd) for cmd in [cmd1, cmd2]]
     p1         = Popen(cmd1, stdout=PIPE)
     p2         = Popen(cmd2, stdin=p1.stdout, stdout=PIPE, stderr=open(devnull, 'wb'))
