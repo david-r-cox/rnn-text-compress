@@ -1,3 +1,13 @@
 # Syntactically Informed Text Compression with Recurrent Neural Networks
 
-Documentation coming soon!
+Repo is under construction!
+
+## Installation
+
+### Using our AMI:
+
+### Using your own hardware:
+
+```
+pip install -r requirements.txt
+```
