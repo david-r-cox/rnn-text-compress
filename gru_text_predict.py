@@ -6,25 +6,24 @@ from keras.utils.data_utils import get_file
 from keras.callbacks import ModelCheckpoint
 from keras.models import Sequential
 from subprocess import Popen, PIPE
+from os.path import basename
 from os import devnull
 import numpy as np
 import random
 import shlex
-import time
 import sys
 
 # Cython imports:
 from vectorize import vectorize_input
 
-maxlen, step = 40, 3
-start_time = time.time()
-
 # Configuration:
-syntaxnet_image_hash = '497a243856ad' # on the AMI, run 'docker images' as root
+syntaxnet_image_hash = 'cd0ec2e113b5' # on the AMI, run 'docker images' as root
 input_file_path = './txt/alice.txt'
 previous_weights = ''
 do_train = True
 do_eval= True
+maxlen = 40
+step = 3
 
 def conll_parse(conll_data):
     text, text_tags = [], []
@@ -105,12 +104,14 @@ def load_weights(model):
     return model
 
 # train the model (for debugging only. use weights file instead.)
-def train(model, X_chars, X_pos, y, num_epochs=50):
-    checkpointer = ModelCheckpoint(filepath=str(start_time)+'_weights.hdf5')
-    model.fit([X_chars, X_pos], y,
-              batch_size=512,
-              nb_epoch=num_epochs, 
-              callbacks=[checkpointer])  
+def train(model, X_chars, X_pos, y, num_iterations=100):
+    for i in xrange(num_iterations / 50):
+        checkpoint_name = '_'.join([basename(input_file_path), str(i*50), 'weights.hdf5'])
+        checkpointer = ModelCheckpoint(filepath=checkpoint_name)
+        model.fit([X_chars, X_pos], y,
+                  batch_size=512,
+                  nb_epoch=50, 
+                  callbacks=[checkpointer])  
     return model
 
 # evaluate the model by calculating the percentage of correctly predicted chars 
