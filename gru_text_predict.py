@@ -20,7 +20,7 @@ maxlen, step = 40, 3
 start_time = time.time()
 
 # Configuration:
-syntaxnet_image_hash = 'e13b71ffb0d8' # on the AMI, run 'docker images' as root
+syntaxnet_image_hash = '497a243856ad' # on the AMI, run 'docker images' as root
 input_file_path = './txt/alice.txt'
 previous_weights = ''
 do_train = True
