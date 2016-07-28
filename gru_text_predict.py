@@ -148,7 +148,6 @@ def main():
     sentences, sentence_tags, next_chars = cut_text(text, text_tags)
 
     # vectorize our input data
-    
     X_chars, X_pos, y = vectorize_input(sentences, char_indices, chars, 
                                 next_chars, sentence_tags, tag_indices, maxlen)
 
