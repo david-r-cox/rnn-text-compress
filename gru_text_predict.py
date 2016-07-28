@@ -102,14 +102,14 @@ def load_weights(model):
     return model
 
 # train the model (for debugging only. use weights file instead.)
-def train(model, X_chars, X_pos, y, num_iterations=100):
-    for i in xrange(num_iterations / 50):
+def train(model, X_chars, X_pos, y, num_iterations=150):
+    for i in xrange(num_iterations / 10):
         print('Iteration:', i)
-        checkpoint_name = '_'.join([basename(input_file_path), str(i*50), 'weights.hdf5'])
+        checkpoint_name = '_'.join([basename(input_file_path), str(i*10), 'weights.hdf5'])
         checkpointer = ModelCheckpoint(filepath=checkpoint_name)
         model.fit([X_chars, X_pos], y,
                   batch_size=512,
-                  nb_epoch=50, 
+                  nb_epoch=10, 
                   callbacks=[checkpointer])  
     return model
 
