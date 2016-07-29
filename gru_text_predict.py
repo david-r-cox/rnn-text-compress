@@ -97,11 +97,6 @@ def build_model(chars, tags):
     decoder.compile(loss='categorical_crossentropy', optimizer='rmsprop')
     return decoder
 
-# load weights from file
-def load_weights(model):
-    model.load_weights(pretrained_weights_path)
-    return model
-
 # train the model (for debugging only. use weights file instead.)
 def train(model, X_chars, X_pos, y, num_iterations=150):
     start_t = str(int(time.time()))
