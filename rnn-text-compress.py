@@ -206,7 +206,6 @@ def main():
     # switch path to weights
     if len(argv) != 4: 
         usage(); exit()
-
     path = argv[3]
 
     # evaluate a single model
