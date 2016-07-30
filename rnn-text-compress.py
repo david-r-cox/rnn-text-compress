@@ -205,7 +205,6 @@ def main():
 
     # switch path to weights
     if len(argv) != 4: 
-        print(len(argv))
         usage(); exit()
 
     path = argv[3]
