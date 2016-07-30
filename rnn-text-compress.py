@@ -6,24 +6,44 @@ from keras.utils.data_utils import get_file
 from keras.callbacks import ModelCheckpoint
 from keras.models import Sequential
 from subprocess import Popen, PIPE
+import matplotlib.pyplot as plt
 from os.path import basename
 from os import devnull
+from sys import argv
 import numpy as np
 import random
 import shlex
+import glob
 import time
 import sys
+import re
 
 # Cython imports:
 from vectorize import vectorize_input
 
+'''
+TODO: 
+    interface with arithmetic coding
+    decompression
+'''
+
 # Configuration:
-input_file_path = './txt/alice.txt'
-previous_weights = ''
-do_train = True
-do_eval= True
-maxlen = 40
-step = 3
+step = 3 # sliding window step
+maxlen = 40 # length of sliding window
+prev_weights_file_path = '' # path to pre-trained weights (optional)
+
+def argcheck():
+    if len(argv) < 2:
+        usage(); exit()
+    return
+
+def usage():
+    print('usage: rnn-text-compress.py < flag > < input file path > < weights directory (-e,-p) >')
+    print('flags:')
+    print('  -t    train model')
+    print('  -e    evaluate a single model')
+    print('  -p    evaluate and plot results for a directory of models')
+    return
 
 def conll_parse(conll_data):
     text, text_tags = [], []
@@ -57,12 +77,12 @@ def cut_text(text, text_tags):
         sentences.append(text[i: i + maxlen])
         sentence_tags.append(text_tags[i: i + maxlen])
         next_chars.append(text[i + maxlen])
-    print('nb sequences:', len(sentences))
+    print('total sequences:', len(sentences))
     return sentences, sentence_tags, next_chars
 
 # build the model
 def build_model(chars, tags):
-    print('Build model...')
+    print('Building model...')
     char_encoder = Sequential(name='char_encoder')
     pos_encoder  = Sequential(name='pos_encoder')
     char_encoder.add(
@@ -98,11 +118,11 @@ def build_model(chars, tags):
     return decoder
 
 # train the model (for debugging only. use weights file instead.)
-def train(model, X_chars, X_pos, y, num_iterations=150):
+def train(model, X_chars, X_pos, y, path, num_iterations=150):
     start_t = str(int(time.time()))
     for i in xrange(num_iterations / 10):
         print('Iteration:', i)
-        checkpoint_name = '_'.join([basename(input_file_path), start_t, str((i+1)*10), 'weights.hdf5'])
+        checkpoint_name = '_'.join([basename(path), start_t, str((i+1)*10), 'weights.hdf5'])
         checkpointer = ModelCheckpoint(filepath=checkpoint_name)
         model.fit([X_chars, X_pos], y,
                   batch_size=512,
@@ -111,26 +131,46 @@ def train(model, X_chars, X_pos, y, num_iterations=150):
     return model
 
 # evaluate the model by calculating the percentage of correctly predicted chars 
-def evaluate_model(
-    model, text_tags, chars, char_indices, 
-    indices_char, tag_indices, sentences, next_chars):
-	num_correct, num_missed = 0., 0.
-	accuracy = lambda x, y: x / (x + y)
-	for sentence, next_char in zip(sentences, next_chars):
-	    x_chars = np.zeros((1, maxlen, len(chars)))
-	    x_pos = np.zeros((1, maxlen, len(tag_indices)))
-	    for t, char in enumerate(sentence): 
-		x_chars[0, t, char_indices[char]] = 1.
-		x_pos[0, t, tag_indices[text_tags[t]]] = 1.
-	    preds = model.predict([x_chars, x_pos], verbose=0)[0]
-	    predicted_next_char = indices_char[preds.argmax()]
-	    if predicted_next_char == next_char: num_correct += 1
-	    else: num_missed += 1
-	    print('Accuracy:', accuracy(num_correct, num_missed))
-	return accuracy(num_correct, num_missed)
+def evaluate_model(                                                             
+    model, text_tags, chars, char_indices,                                      
+    indices_char, tag_indices, sentences, next_chars):                          
+        print('Evaluating model...')
+        num_correct, num_missed = 0., 0.                                        
+        accuracy = lambda x, y: x / (x + y)                                     
+        for sentence, next_char in zip(sentences, next_chars):                  
+            x_chars = np.zeros((1, maxlen, len(chars)))                         
+            x_pos = np.zeros((1, maxlen, len(tag_indices)))                     
+            for t, char in enumerate(sentence):                                 
+                x_chars[0, t, char_indices[char]] = 1.                          
+                x_pos[0, t, tag_indices[text_tags[t]]] = 1.                     
+            preds = model.predict([x_chars, x_pos], verbose=0)[0]               
+            predicted_next_char = indices_char[preds.argmax()]                  
+            if predicted_next_char == next_char: num_correct += 1               
+            else: num_missed += 1                                               
+        print('Accuracy:', accuracy(num_correct, num_missed))              
+        return accuracy(num_correct, num_missed)      
+
+def plot_results(path, results): 
+    model_name = re.split('\w+)\.',path)[1]
+    epochs = [10*x for x in range(1,len(results)+1)]
+    plt.plot(epochs, results)
+    plt.xlabel('epochs')
+    plt.ylabel('accuracy (%)')
+    plt.title('Model accuracy over time. Input: {}'.format(model_name))
+    plt.grid(True)
+    plt.savefig('{}.png'.format(model_name))
+    return
 
 def main():
-    text, text_tags = get_pos_tags(input_file_path)
+    argcheck()
+    flag = argv[1] 
+    path = argv[2] 
+    if flag == '-e' or flag == '-p': 
+        global step
+        step *= 100 # increase step size to keep evaluation time reasonable 
+
+    # Initialization: 
+    text, text_tags = get_pos_tags(path)
     tags            = set([tag for tag in text_tags])
     tag_indices     = {t:i for i, t in enumerate(tags)}
     chars           = [chr(x) for x in range(0, 256)]
@@ -152,16 +192,43 @@ def main():
     decoder = build_model(chars, tags) 
 
     # load weights from a previous run 
-    if previous_weights != '':
-        decoder.load_weights(previous_weights)
+    if prev_weights_file_path != '':
+        decoder.load_weights(prev_weights_file_path)
 
-    # train the model
-    if do_train: 
-        train(decoder, X_chars, X_pos, y)
+    # Training:
 
-    # evaluate the model
-    if do_eval:
+    # train a model
+    if flag == '-t':
+        train(decoder, X_chars, X_pos, y, path, 150)
+
+    # Evaluation:
+
+    # switch path to weights
+    if len(argv) != 4: 
+        print(len(argv))
+        usage(); exit()
+
+    path = argv[3]
+
+    # evaluate a single model
+    if flag == '-e':
+        decoder.load_weights(path)
         evaluate_model(decoder, text_tags, chars, char_indices, indices_char, 
                        tag_indices, sentences, next_chars)
 
-main()
+    # batch evaluate and plot
+    if flag == '-p':
+	results = []                                                                   
+	natural = lambda x: [int(c) if c.isdigit() else c for c in re.split('(\d+)', x)] 
+        weight_paths = sorted(glob.glob(path+'*.hdf5'), key=natural)
+        print('total weight files:', len(weight_paths))
+	for weight_path in weight_paths:
+            decoder.load_weights(weight_path)
+            results.append(evaluate_model(decoder, text_tags, chars, char_indices, 
+                indices_char, tag_indices, sentences, next_chars))
+        plot_results(path, results)
+
+    if flag not in ['-t', '-e', '-p']: usage()
+
+if __name__ == '__main__':
+    main()
