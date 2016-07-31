@@ -6,17 +6,19 @@ from keras.utils.data_utils import get_file
 from keras.callbacks import ModelCheckpoint
 from keras.models import Sequential
 from subprocess import Popen, PIPE
-import matplotlib.pyplot as plt
 from os.path import basename
 from os import devnull
 from sys import argv
 import numpy as np
+import matplotlib
 import random
 import shlex
 import glob
 import time
 import sys
 import re
+matplotlib.use('Agg') 
+import matplotlib.pyplot as plt
 
 # Cython imports:
 from vectorize import vectorize_input
@@ -33,8 +35,13 @@ maxlen = 40 # length of sliding window
 prev_weights_file_path = '' # path to pre-trained weights (optional)
 
 def argcheck():
-    if len(argv) < 2:
-        usage(); exit()
+    if len(argv) < 2: usage()
+    flag = argv[1]
+    if flag not in ['-t', '-e', '-p']: usage()
+    if flag == '-t':
+	    if len(argv) < 3: usage()
+    if flag in ['-e', '-p']:
+	    if len(argv) < 4: usage()
     return
 
 def usage():
@@ -43,6 +50,7 @@ def usage():
     print('  -t    train model')
     print('  -e    evaluate a single model')
     print('  -p    evaluate and plot results for a directory of models')
+    exit()
     return
 
 def conll_parse(conll_data):
@@ -150,15 +158,14 @@ def evaluate_model(
         print('Accuracy:', accuracy(num_correct, num_missed))              
         return accuracy(num_correct, num_missed)      
 
-def plot_results(path, results): 
-    model_name = re.split('\w+)\.',path)[1]
+def plot_results(file_name, results): 
     epochs = [10*x for x in range(1,len(results)+1)]
     plt.plot(epochs, results)
     plt.xlabel('epochs')
     plt.ylabel('accuracy (%)')
-    plt.title('Model accuracy over time. Input: {}'.format(model_name))
+    plt.title('Model accuracy over time. Input: {}'.format(file_name))
     plt.grid(True)
-    plt.savefig('{}.png'.format(model_name))
+    plt.savefig('{}.png'.format(file_name))
     return
 
 def main():
@@ -203,14 +210,11 @@ def main():
 
     # Evaluation:
 
-    # switch path to weights
-    if len(argv) != 4: 
-        usage(); exit()
-    path = argv[3]
+    weights_path = argv[3]
 
     # evaluate a single model
     if flag == '-e':
-        decoder.load_weights(path)
+        decoder.load_weights(weights_path)
         evaluate_model(decoder, text_tags, chars, char_indices, indices_char, 
                        tag_indices, sentences, next_chars)
 
@@ -218,15 +222,14 @@ def main():
     if flag == '-p':
 	results = []                                                                   
 	natural = lambda x: [int(c) if c.isdigit() else c for c in re.split('(\d+)', x)] 
-        weight_paths = sorted(glob.glob(path+'*.hdf5'), key=natural)
+        weight_paths = sorted(glob.glob(weights_path+'*.hdf5'), key=natural)
+        print('Beginning batch evaluation and plotting...')
         print('total weight files:', len(weight_paths))
 	for weight_path in weight_paths:
             decoder.load_weights(weight_path)
             results.append(evaluate_model(decoder, text_tags, chars, char_indices, 
                 indices_char, tag_indices, sentences, next_chars))
-        plot_results(path, results)
-
-    if flag not in ['-t', '-e', '-p']: usage()
+        plot_results(basename(path), results)
 
 if __name__ == '__main__':
     main()
