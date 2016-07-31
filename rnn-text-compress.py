@@ -155,7 +155,7 @@ def evaluate_model(
             predicted_next_char = indices_char[preds.argmax()]
             if predicted_next_char == next_char: num_correct += 1
             else: num_missed += 1
-            print('Accuracy:', accuracy(num_correct, num_missed))
+        print('Accuracy:', accuracy(num_correct, num_missed))
         return accuracy(num_correct, num_missed)
 
 
