@@ -139,24 +139,25 @@ def train(model, X_chars, X_pos, y, path, num_iterations=150):
     return model
 
 # evaluate the model by calculating the percentage of correctly predicted chars 
-def evaluate_model(                                                             
-    model, text_tags, chars, char_indices,                                      
-    indices_char, tag_indices, sentences, next_chars):                          
+def evaluate_model(
+    model, sentence_tags, chars, char_indices,
+    indices_char, tag_indices, sentences, next_chars):
         print('Evaluating model...')
-        num_correct, num_missed = 0., 0.                                        
-        accuracy = lambda x, y: x / (x + y)                                     
-        for sentence, next_char in zip(sentences, next_chars):                  
-            x_chars = np.zeros((1, maxlen, len(chars)))                         
-            x_pos = np.zeros((1, maxlen, len(tag_indices)))                     
-            for t, char in enumerate(sentence):                                 
-                x_chars[0, t, char_indices[char]] = 1.                          
-                x_pos[0, t, tag_indices[text_tags[t]]] = 1.                     
-            preds = model.predict([x_chars, x_pos], verbose=0)[0]               
-            predicted_next_char = indices_char[preds.argmax()]                  
-            if predicted_next_char == next_char: num_correct += 1               
-            else: num_missed += 1                                               
-        print('Accuracy:', accuracy(num_correct, num_missed))              
-        return accuracy(num_correct, num_missed)      
+        num_correct, num_missed = 0., 0.
+        accuracy = lambda x, y: x / (x + y)
+        for i, (sentence, next_char) in enumerate(zip(sentences, next_chars)):
+            x_chars = np.zeros((1, maxlen, len(chars)))
+            x_pos = np.zeros((1, maxlen, len(tag_indices)))
+            for t, char in enumerate(sentence):
+                x_chars[0, t, char_indices[char]] = 1.
+                x_pos[0, t, tag_indices[sentence_tags[i][t]]] = 1.
+            preds = model.predict([x_chars, x_pos], verbose=0)[0]
+            predicted_next_char = indices_char[preds.argmax()]
+            if predicted_next_char == next_char: num_correct += 1
+            else: num_missed += 1
+            print('Accuracy:', accuracy(num_correct, num_missed))
+        return accuracy(num_correct, num_missed)
+
 
 def plot_results(file_name, results): 
     epochs = [10*x for x in range(1,len(results)+1)]
@@ -214,7 +215,7 @@ def main():
     if flag == '-e':
         weights_path = argv[3]
         decoder.load_weights(weights_path)
-        evaluate_model(decoder, text_tags, chars, char_indices, indices_char, 
+        evaluate_model(decoder, sentence_tags, chars, char_indices, indices_char, 
                        tag_indices, sentences, next_chars)
 
     # batch evaluate and plot
@@ -222,12 +223,12 @@ def main():
 	results = []                                                                   
         weights_path = argv[3]
 	natural = lambda x: [int(c) if c.isdigit() else c for c in re.split('(\d+)', x)] 
-        weight_paths = sorted(glob.glob(weights_path+'*.hdf5'), key=natural)
+        weight_paths = sorted(glob.glob(weights_path+'/*.hdf5'), key=natural)
         print('Beginning batch evaluation and plotting...')
         print('total weight files:', len(weight_paths))
 	for weight_path in weight_paths:
             decoder.load_weights(weight_path)
-            results.append(evaluate_model(decoder, text_tags, chars, char_indices, 
+            results.append(evaluate_model(decoder, sentence_tags, chars, char_indices, 
                 indices_char, tag_indices, sentences, next_chars))
         plot_results(basename(path), results)
 
