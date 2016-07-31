@@ -210,10 +210,9 @@ def main():
 
     # Evaluation:
 
-    weights_path = argv[3]
-
     # evaluate a single model
     if flag == '-e':
+        weights_path = argv[3]
         decoder.load_weights(weights_path)
         evaluate_model(decoder, text_tags, chars, char_indices, indices_char, 
                        tag_indices, sentences, next_chars)
@@ -221,6 +220,7 @@ def main():
     # batch evaluate and plot
     if flag == '-p':
 	results = []                                                                   
+        weights_path = argv[3]
 	natural = lambda x: [int(c) if c.isdigit() else c for c in re.split('(\d+)', x)] 
         weight_paths = sorted(glob.glob(weights_path+'*.hdf5'), key=natural)
         print('Beginning batch evaluation and plotting...')
