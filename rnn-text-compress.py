@@ -163,7 +163,7 @@ def plot_results(file_name, results):
     epochs = [10*x for x in range(1,len(results)+1)]
     plt.plot(epochs, results)
     plt.xlabel('epochs')
-    plt.ylabel('accuracy (%)')
+    plt.ylabel('accuracy')
     plt.title('Model accuracy over time. Input: {}'.format(file_name))
     plt.grid(True)
     plt.savefig('{}.png'.format(file_name))
