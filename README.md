@@ -4,7 +4,7 @@
 
 ### Using our AMI:
 
-Start a g2.2xlarge instance using our AMI (ami-2c3a7a4c).
+Start a g2.2xlarge instance using our AMI ```ami-2c3a7a4c```.
 
 ```
 git clone https://github.com/davidcox143/rnn-text-compress.git
